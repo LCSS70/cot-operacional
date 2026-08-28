@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#1a1a1a">
+<meta name="description" content="COT Operacional - planejamento, acompanhamento e comprovação das operações de trânsito do DER-PE">
+<title>COT Operacional · DER-PE</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#161615;
+  --bg-panel:#212120;
+  --bg-panel-2:#292928;
+  --bg-raised:#302f2d;
+  --line:#f2c200;
+  --line-dim:#8a6e00;
+  --orange:#ff6a1f;
+  --danger:#e5484d;
+  --success:#31c765;
+  --text:#f4f2ea;
+  --text-dim:#9c9a92;
+  --border:#3a3936;
+  --radius:6px;
+  --font-display:'Oswald',sans-serif;
+  --font-mono:'Roboto Mono',monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font-mono);}
+body{
+  display:flex;flex-direction:column;
+  min-height:100vh;min-height:100dvh;
+  padding-bottom:env(safe-area-inset-bottom);
+  overscroll-behavior-y:contain;
+}
+h1,h2,h3,h4,.disp{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.03em;margin:0;}
+button{font-family:var(--font-mono);cursor:pointer;border:none;}
+input,select,textarea{font-family:var(--font-mono);}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--bg-raised);border-radius:4px;}
+
+/* ---------- Road-stripe motifs ---------- */
+.dash-rule{
+  height:3px;background-image:repeating-linear-gradient(90deg,var(--line) 0 18px,transparent 18px 30px);
+  opacity:.9;
+}
+.dash-rule.thin{height:2px;opacity:.6;}
+
+/* ---------- Header ---------- */
+#topbar{
+  background:var(--bg-panel);border-bottom:1px solid var(--border);
+  padding:10px 14px 8px;position:sticky;top:0;z-index:40;
+}
+#topbar .row1{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+#topbar .brand{display:flex;align-items:center;gap:9px;}
+#topbar .brand .badge{
+  width:34px;height:34px;border-radius:50%;background:var(--line);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:11px;color:#161615;flex-shrink:0;
+}
+#topbar h1{font-size:16px;line-height:1.1;color:var(--text);}
+#topbar .subtitle{font-size:10px;color:var(--text-dim);letter-spacing:.08em;margin-top:1px;}
+#netstatus{
+  font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.05em;
+  padding:4px 9px;border-radius:20px;display:flex;align-items:center;gap:5px;white-space:nowrap;
+}
+#netstatus .dot{width:7px;height:7px;border-radius:50%;}
+#netstatus.online{background:rgba(49,199,101,.12);color:var(--success);}
+#netstatus.online .dot{background:var(--success);box-shadow:0 0 6px var(--success);}
+#netstatus.offline{background:rgba(255,106,31,.14);color:var(--orange);}
+#netstatus.offline .dot{background:var(--orange);}
+#opinfo{margin-top:8px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-dim);}
+#opinfo b{color:var(--line);font-weight:700;}
+#lockBtn{background:none;color:var(--text-dim);font-size:16px;padding:4px;}
+
+/* ---------- Main content ---------- */
+main{flex:1;overflow-y:auto;padding:14px 14px 90px;max-width:760px;margin:0 auto;width:100%;}
+.tabpanel{display:none;animation:fadeIn .15s ease;}
+.tabpanel.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+.section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;}
+.section-title:first-child{margin-top:0;}
+.section-title h2{font-size:14px;color:var(--line);}
+.section-title .hint{font-size:10px;color:var(--text-dim);text-transform:none;letter-spacing:0;font-family:var(--font-mono);}
+
+/* Dashboard cards */
+.grid-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;}
+.card{
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px;position:relative;overflow:hidden;
+}
+.card::before{content:"";position:absolute;top:0;left:0;width:100%;height:2px;background:var(--line-dim);}
+.card.alert::before{background:var(--orange);}
+.card .num{font-family:var(--font-display);font-size:26px;font-weight:600;line-height:1;color:var(--text);}
+.card .lbl{font-size:9.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-top:5px;}
+.card.wide{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;}
+
+.quickrow{display:flex;gap:8px;margin-top:12px;}
+.qbtn{
+  flex:1;background:var(--bg-panel);border:1px solid var(--border);color:var(--text);
+  border-radius:var(--radius);padding:12px 8px;font-size:10.5px;text-transform:uppercase;
+  letter-spacing:.04em;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:var(--font-display);
+}
+.qbtn .ic{font-size:18px;}
+.qbtn:active{background:var(--bg-raised);}
+.qbtn.primary{background:var(--line);color:#161615;border-color:var(--line);}
+
+/* Lists */
+.list{display:flex;flex-direction:column;gap:8px;}
+.item{
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);
+  padding:11px 12px;
+}
+.item .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.item .title{font-family:var(--font-display);font-size:13.5px;text-transform:none;letter-spacing:0;}
+.item .meta{font-size:10.5px;color:var(--text-dim);margin-top:3px;line-height:1.5;}
+.item .meta b{color:var(--text);font-weight:500;}
+.tag{
+  font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  padding:3px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0;
+}
+.tag.aberta,.tag.disponivel,.tag.encerrada.ok{background:rgba(49,199,101,.14);color:var(--success);}
+.tag.encerrada{background:rgba(155,153,146,.15);color:var(--text-dim);}
+.tag.indisponivel,.tag.urgente{background:rgba(229,72,77,.15);color:var(--danger);}
+.tag.especial{background:rgba(255,106,31,.15);color:var(--orange);}
+.tag.ordinaria{background:rgba(242,194,0,.14);color:var(--line);}
+.item .actions{display:flex;gap:6px;margin-top:9px;}
+.item .actions button{
+  flex:1;background:var(--bg-raised);color:var(--text);border-radius:4px;padding:7px;font-size:10.5px;
+  text-transform:uppercase;letter-spacing:.03em;
+}
+.item .actions button.danger{color:var(--danger);}
+.item .actions button.primary{background:var(--line);color:#161615;font-weight:700;}
+.empty{
+  text-align:center;padding:34px 16px;color:var(--text-dim);font-size:12px;border:1px dashed var(--border);
+  border-radius:var(--radius);
+}
+
+/* Forms */
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;font-family:var(--font-display);}
+.field input[type=text],.field input[type=number],.field input[type=date],.field input[type=time],
+.field select,.field textarea{
+  width:100%;background:var(--bg-panel-2);border:1px solid var(--border);color:var(--text);
+  padding:10px 11px;border-radius:5px;font-size:13px;
+}
+.field textarea{resize:vertical;min-height:60px;}
+.field-row{display:flex;gap:10px;}
+.field-row .field{flex:1;}
+.check-grid{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;padding:8px;background:var(--bg-panel-2);border:1px solid var(--border);border-radius:5px;}
+.check-item{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:4px 2px;}
+.check-item input{width:16px;height:16px;accent-color:var(--line);}
+.gpsRow{display:flex;gap:8px;align-items:flex-end;}
+.gpsRow .field{flex:1;margin-bottom:0;}
+.btnGps{background:var(--bg-raised);color:var(--line);border-radius:5px;padding:10px 12px;font-size:11px;white-space:nowrap;text-transform:uppercase;font-family:var(--font-display);}
+.gpsStatus{font-size:10px;color:var(--text-dim);margin-top:6px;}
+.gpsStatus.ok{color:var(--success);}
+.gpsStatus.err{color:var(--danger);}
+
+.photoGrid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.photoThumb{width:64px;height:64px;border-radius:5px;overflow:hidden;position:relative;border:1px solid var(--border);}
+.photoThumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.photoThumb .rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:18px;text-align:center;}
+.addPhotoBtn{width:64px;height:64px;border:1px dashed var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--text-dim);background:var(--bg-panel-2);}
+
+.btn{
+  width:100%;padding:13px;border-radius:6px;font-family:var(--font-display);font-size:13px;
+  text-transform:uppercase;letter-spacing:.04em;font-weight:600;
+}
+.btn.primary{background:var(--line);color:#161615;}
+.btn.ghost{background:var(--bg-raised);color:var(--text);}
+.btn.danger{background:rgba(229,72,77,.15);color:var(--danger);}
+.btn-row{display:flex;gap:9px;margin-top:16px;}
+.btn-row .btn{flex:1;}
+
+/* Modal */
+.modalOverlay{
+  position:fixed;inset:0;background:rgba(10,10,10,.72);z-index:100;display:none;
+  align-items:flex-end;justify-content:center;
+}
+.modalOverlay.show{display:flex;}
+.modal{
+  background:var(--bg);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;
+  border-radius:16px 16px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));
+  border-top:3px solid var(--line);
+}
+@media(min-width:640px){
+  .modalOverlay{align-items:center;}
+  .modal{border-radius:12px;border-top:3px solid var(--line);max-height:88vh;}
+}
+.modal .mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal .mhead h3{font-size:15px;}
+.modal .mclose{background:var(--bg-panel);color:var(--text-dim);width:30px;height:30px;border-radius:50%;font-size:16px;}
+
+/* Bottom nav */
+#bottomnav{
+  position:fixed;bottom:0;left:0;right:0;background:var(--bg-panel);border-top:1px solid var(--border);
+  display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom);
+}
+#bottomnav button{
+  flex:1;background:none;color:var(--text-dim);padding:9px 2px 8px;display:flex;flex-direction:column;
+  align-items:center;gap:3px;font-size:9px;text-transform:uppercase;letter-spacing:.03em;font-family:var(--font-display);
+  border-top:2px solid transparent;
+}
+#bottomnav button .ic{font-size:17px;}
+#bottomnav button.active{color:var(--line);border-top-color:var(--line);}
+
+/* Lock screen */
+#lockscreen{
+  position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:24px;text-align:center;
+}
+#lockscreen .badge{width:64px;height:64px;border-radius:50%;background:var(--line);display:flex;align-items:center;
+  justify-content:center;font-family:var(--font-display);font-weight:700;color:#161615;margin-bottom:18px;font-size:18px;}
+#lockscreen h2{font-size:18px;margin-bottom:6px;}
+#lockscreen p{color:var(--text-dim);font-size:12px;margin:0 0 20px;max-width:280px;}
+#pinInput{
+  font-size:24px;letter-spacing:12px;text-align:center;width:200px;background:var(--bg-panel);
+  border:1px solid var(--border);color:var(--text);padding:12px;border-radius:8px;margin-bottom:14px;
+}
+#lockErr{color:var(--danger);font-size:11px;height:14px;margin-bottom:8px;}
+
+/* setup */
+.setupWrap{max-width:420px;margin:40px auto;padding:0 18px;}
+.toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg-raised);
+  color:var(--text);padding:10px 18px;border-radius:20px;font-size:12px;z-index:300;
+  border:1px solid var(--line-dim);box-shadow:0 6px 20px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+
+.filterRow{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;}
+.chip{
+  background:var(--bg-panel);border:1px solid var(--border);color:var(--text-dim);padding:6px 13px;
+  border-radius:20px;font-size:10.5px;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;font-family:var(--font-display);
+}
+.chip.active{background:var(--line);color:#161615;border-color:var(--line);font-weight:700;}
+
+.detailBlock{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+.detailBlock h4{font-size:11px;color:var(--line);margin-bottom:8px;}
+.kv{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);}
+.kv:last-child{border-bottom:none;}
+.kv span:first-child{color:var(--text-dim);}
+
+#printArea{display:none;}
+@media print{
+  body *{visibility:hidden;}
+  #printArea,#printArea *{visibility:visible;}
+  #printArea{display:block;position:absolute;top:0;left:0;width:100%;color:#000;background:#fff;padding:20px;}
+  #printArea h1,#printArea h2,#printArea h3{color:#000;}
+  #printArea table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11px;}
+  #printArea th,#printArea td{border:1px solid #999;padding:5px 7px;text-align:left;}
+  #printArea th{background:#eee;}
+}
+.smallnote{font-size:10.5px;color:var(--text-dim);line-height:1.6;margin-top:10px;}
+select option{background:var(--bg-panel-2);}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOCK SCREEN ===================== -->
+<div id="lockscreen" style="display:none;">
+  <div class="badge">COT</div>
+  <h2>COT Operacional</h2>
+  <p id="lockText">Digite o PIN de acesso do aplicativo.</p>
+  <input id="pinInput" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+  <div id="lockErr"></div>
+  <button class="btn primary" style="max-width:200px" onclick="tryUnlock()">Entrar</button>
+</div>
+
+<!-- ===================== SETUP INICIAL ===================== -->
+<div id="setupScreen" style="display:none;">
+  <main style="padding-top:40px;">
+    <div class="setupWrap">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div class="badge" style="width:60px;height:60px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:#161615;margin:0 auto 14px;">COT</div>
+        <h2 style="font-size:19px;">Configuração inicial</h2>
+        <p style="color:var(--text-dim);font-size:12px;margin-top:6px;">DER-PE · UFVS — Unidade de Fiscalização e Vistoria</p>
+      </div>
+      <div class="field">
+        <label>Nome do operador (fica registrado nos lançamentos)</label>
+        <input type="text" id="setupNome" placeholder="Ex.: Luiz Carlos S. de Souza">
+      </div>
+      <div class="field">
+        <label>Matrícula / função (opcional)</label>
+        <input type="text" id="setupFuncao" placeholder="Ex.: Coordenador de Operações de Trânsito">
+      </div>
+      <div class="field">
+        <label>PIN de acesso (opcional, 4 a 6 dígitos)</label>
+        <input type="password" id="setupPin" inputmode="numeric" maxlength="6" placeholder="Deixe em branco para não usar PIN">
+      </div>
+      <div class="smallnote">O PIN protege a abertura do app neste aparelho. Os dados ficam salvos apenas neste dispositivo (IndexedDB do navegador) — use "Backup" em Relatórios para levar os dados para outro aparelho.</div>
+      <button class="btn primary" style="margin-top:18px" onclick="finishSetup()">Começar a usar</button>
+    </div>
+  </main>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app" style="display:none;">
+  <header id="topbar">
+    <div class="row1">
+      <div class="brand">
+        <div class="badge">COT</div>
+        <div>
+          <h1>COT Operacional</h1>
+          <div class="subtitle">DER-PE · UFVS</div>
+        </div>
+      </div>
+      <div id="netstatus" class="online"><span class="dot"></span><span id="netstatusLabel">Online</span></div>
+    </div>
+    <div id="opinfo">
+      <div>Operador: <b id="operadorNome">—</b></div>
+      <button id="lockBtn" onclick="lockApp()" title="Bloquear app">🔒</button>
+    </div>
+  </header>
+
+  <div class="dash-rule"></div>
+
+  <main>
+
+    <!-- PAINEL -->
+    <section class="tabpanel active" id="tab-painel">
+      <div class="section-title"><h2>Painel do dia</h2><span class="hint" id="painelData"></span></div>
+      <div class="grid-cards" id="dashCards"></div>
+      <div class="quickrow">
+        <button class="qbtn primary" onclick="openOperacaoForm()"><span class="ic">🚦</span>Nova Operação</button>
+        <button class="qbtn" onclick="openOcorrenciaForm()"><span class="ic">📋</span>Nova Ocorrência</button>
+        <button class="qbtn" onclick="openEscalaForm()"><span class="ic">🗓️</span>Nova Escala</button>
+      </div>
+
+      <div class="section-title"><h2>Operações em andamento</h2></div>
+      <div class="list" id="painelOperacoesAtivas"></div>
+
+      <div class="section-title"><h2>Ocorrências abertas</h2></div>
+      <div class="list" id="painelOcorrenciasAbertas"></div>
+    </section>
+
+    <!-- ESCALA -->
+    <section class="tabpanel" id="tab-escala">
+      <div class="section-title"><h2>Escala</h2><button class="qbtn primary" style="flex:none;padding:8px 14px;" onclick="openEscalaForm()">+ Nova</button></div>
+      <div class="field"><input type="date" id="filtroEscalaData" onchange="renderEscalas()"></div>
+      <div class="list" id="listaEscalas"></div>
+    </section>
+
+    <!-- OPERAÇÕES -->
+    <section class="tabpanel" id="tab-operacoes">
+      <div class="section-title"><h2>Operações</h2><button class="qbtn primary" style="flex:none;padding:8px 14px;" onclick="openOperacaoForm()">+ Nova</button></div>
+      <div class="filterRow" id="filtroOperacaoStatus">
+        <button class="chip active" data-v="todas" onclick="setFiltroOp(this,'todas')">Todas</button>
+        <button class="chip" data-v="aberta" onclick="setFiltroOp(this,'aberta')">Em andamento</button>
+        <button class="chip" data-v="encerrada" onclick="setFiltroOp(this,'encerrada')">Encerradas</button>
+      </div>
+      <div class="list" id="listaOperacoes"></div>
+    </section>
+
+    <!-- OCORRÊNCIAS -->
+    <section class="tabpanel" id="tab-ocorrencias">
+      <div class="section-title"><h2>Ocorrências</h2><button class="qbtn primary" style="flex:none;padding:8px 14px;" onclick="openOcorrenciaForm()">+ Nova</button></div>
+      <div class="filterRow" id="filtroOcorrenciaStatus">
+        <button class="chip active" data-v="todas" onclick="setFiltroOc(this,'todas')">Todas</button>
+        <button class="chip" data-v="aberta" onclick="setFiltroOc(this,'aberta')">Abertas</button>
+        <button class="chip" data-v="encerrada" onclick="setFiltroOc(this,'encerrada')">Encerradas</button>
+      </div>
+      <div class="list" id="listaOcorrencias"></div>
+    </section>
+
+    <!-- RELATÓRIOS -->
+    <section class="tabpanel" id="tab-relatorios">
+      <div class="section-title"><h2>Relatórios</h2></div>
+      <div class="field-row">
+        <div class="field"><label>Período - de</label><input type="date" id="relDataIni"></div>
+        <div class="field"><label>até</label><input type="date" id="relDataFim"></div>
+      </div>
+      <div class="field">
+        <label>Dados a incluir</label>
+        <select id="relTipo">
+          <option value="operacoes">Operações</option>
+          <option value="ocorrencias">Ocorrências</option>
+          <option value="escalas">Escalas</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="gerarPDF()">Gerar PDF</button>
+        <button class="btn ghost" onclick="gerarCSV()">Exportar Excel (CSV)</button>
+      </div>
+
+      <div class="section-title"><h2>Backup / transferência de dados</h2></div>
+      <div class="smallnote">Não há um servidor central: os dados vivem no aparelho. Para levar o histórico do celular para o computador (ou vice-versa), exporte aqui e importe no outro dispositivo.</div>
+      <div class="btn-row">
+        <button class="btn ghost" onclick="exportarBackup()">Exportar backup (.json)</button>
+        <button class="btn ghost" onclick="document.getElementById('importFile').click()">Importar backup</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importarBackup(event)">
+    </section>
+
+    <!-- CADASTROS -->
+    <section class="tabpanel" id="tab-cadastros">
+      <div class="section-title"><h2>Agentes</h2><button class="qbtn primary" style="flex:none;padding:8px 14px;" onclick="openAgenteForm()">+ Novo</button></div>
+      <div class="list" id="listaAgentes"></div>
+
+      <div class="section-title"><h2>Viaturas</h2><button class="qbtn primary" style="flex:none;padding:8px 14px;" onclick="openViaturaForm()">+ Nova</button></div>
+      <div class="list" id="listaViaturas"></div>
+
+      <div class="section-title"><h2>Operador do app</h2></div>
+      <div class="item">
+        <div class="field"><label>Nome</label><input type="text" id="cfgNome"></div>
+        <div class="field"><label>PIN (deixe em branco para remover)</label><input type="password" id="cfgPin" inputmode="numeric" maxlength="6" placeholder="••••"></div>
+        <button class="btn primary" onclick="salvarConfigOperador()">Salvar</button>
+      </div>
+    </section>
+
+  </main>
+
+  <nav id="bottomnav">
+    <button class="active" data-tab="painel" onclick="showTab('painel')"><span class="ic">📊</span>Painel</button>
+    <button data-tab="escala" onclick="showTab('escala')"><span class="ic">🗓️</span>Escala</button>
+    <button data-tab="operacoes" onclick="showTab('operacoes')"><span class="ic">🚦</span>Operações</button>
+    <button data-tab="ocorrencias" onclick="showTab('ocorrencias')"><span class="ic">📋</span>Ocorrências</button>
+    <button data-tab="relatorios" onclick="showTab('relatorios')"><span class="ic">📄</span>Relatórios</button>
+    <button data-tab="cadastros" onclick="showTab('cadastros')"><span class="ic">⚙️</span>Cadastros</button>
+  </nav>
+</div>
+
+<!-- ===================== MODAL GENÉRICO ===================== -->
+<div class="modalOverlay" id="modalOverlay">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+/* ======================================================================
+   COT OPERACIONAL — DER-PE / UFVS
+   App único (HTML+CSS+JS) com IndexedDB para uso 100% offline.
+   Escopo da 1ª versão (por decisão deliberada, para validar uso real antes
+   de evoluir): escala de agentes/viaturas, registro de operações,
+   ocorrências com foto e GPS, relatórios em PDF e CSV, painel do dia.
+   Mapa em tempo real, integrações (BPRV/PRF/Detran/prefeituras), diário
+   de turno e indicadores avançados ficam para a fase 2.
+   ====================================================================== */
+
+const DB_NAME='cotOperacionalDB', DB_VERSION=1;
+let db;
+
+function uid(){ return (crypto.randomUUID?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(16).slice(2)); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function nowTime(){ return new Date().toTimeString().slice(0,5); }
+function fmtDate(iso){ if(!iso) return '—'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+function esc(s){ return (s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e)=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('config')) d.createObjectStore('config',{keyPath:'key'});
+      if(!d.objectStoreNames.contains('agentes')) d.createObjectStore('agentes',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('viaturas')) d.createObjectStore('viaturas',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('escalas')){ const s=d.createObjectStore('escalas',{keyPath:'id'}); s.createIndex('data','data'); }
+      if(!d.objectStoreNames.contains('operacoes')){ const s=d.createObjectStore('operacoes',{keyPath:'id'}); s.createIndex('data','data'); s.createIndex('status','status'); }
+      if(!d.objectStoreNames.contains('ocorrencias')){ const s=d.createObjectStore('ocorrencias',{keyPath:'id'}); s.createIndex('data','data'); s.createIndex('status','status'); }
+    };
+    req.onsuccess = (e)=>{ db=e.target.result; resolve(db); };
+    req.onerror = (e)=>reject(e);
+  });
+}
+function tx(store,mode='readonly'){ return db.transaction(store,mode).objectStore(store); }
+function dbGetAll(store){ return new Promise((res,rej)=>{ const r=tx(store).getAll(); r.onsuccess=()=>res(r.result); r.onerror=rej; }); }
+function dbGet(store,id){ return new Promise((res,rej)=>{ const r=tx(store).get(id); r.onsuccess=()=>res(r.result); r.onerror=rej; }); }
+function dbPut(store,obj){ return new Promise((res,rej)=>{ const r=tx(store,'readwrite').put(obj); r.onsuccess=()=>res(obj); r.onerror=rej; }); }
+function dbDelete(store,id){ return new Promise((res,rej)=>{ const r=tx(store,'readwrite').delete(id); r.onsuccess=()=>res(); r.onerror=rej; }); }
+
+/* ---------------- Config / operador / PIN ---------------- */
+let CONFIG = { operadorNome:'', operadorFuncao:'', pinHash:'' };
+
+async function sha256(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function loadConfig(){
+  const c = await dbGet('config','app');
+  if(c) CONFIG = c.value;
+}
+async function saveConfig(){
+  await dbPut('config',{key:'app',value:CONFIG});
+}
+
+/* ---------------- Boot ---------------- */
+window.addEventListener('load', boot);
+async function boot(){
+  await openDB();
+  await loadConfig();
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+  updateNetStatus();
+  window.addEventListener('online', updateNetStatus);
+  window.addEventListener('offline', updateNetStatus);
+
+  if(!CONFIG.operadorNome){
+    document.getElementById('setupScreen').style.display='block';
+    return;
+  }
+  if(CONFIG.pinHash){
+    document.getElementById('lockscreen').style.display='flex';
+    document.getElementById('pinInput').focus();
+    document.getElementById('pinInput').addEventListener('keydown', e=>{ if(e.key==='Enter') tryUnlock(); });
+  } else {
+    startApp();
+  }
+}
+
+async function finishSetup(){
+  const nome = document.getElementById('setupNome').value.trim();
+  if(!nome){ toast('Informe o nome do operador'); return; }
+  CONFIG.operadorNome = nome;
+  CONFIG.operadorFuncao = document.getElementById('setupFuncao').value.trim();
+  const pin = document.getElementById('setupPin').value.trim();
+  CONFIG.pinHash = pin ? await sha256(pin) : '';
+  await saveConfig();
+  document.getElementById('setupScreen').style.display='none';
+  startApp();
+}
+
+async function tryUnlock(){
+  const pin = document.getElementById('pinInput').value.trim();
+  const hash = await sha256(pin);
+  if(hash === CONFIG.pinHash){
+    document.getElementById('lockscreen').style.display='none';
+    document.getElementById('pinInput').value='';
+    document.getElementById('lockErr').textContent='';
+    startApp();
+  } else {
+    document.getElementById('lockErr').textContent='PIN incorreto';
+  }
+}
+function lockApp(){
+  if(!CONFIG.pinHash){ toast('Nenhum PIN configurado em Cadastros'); return; }
+  document.getElementById('app').style.display='none';
+  document.getElementById('lockscreen').style.display='flex';
+  document.getElementById('pinInput').focus();
+}
+
+let started=false;
+function startApp(){
+  document.getElementById('app').style.display='block';
+  document.getElementById('operadorNome').textContent = CONFIG.operadorNome;
+  document.getElementById('cfgNome').value = CONFIG.operadorNome;
+  document.getElementById('filtroEscalaData').value = todayISO();
+  document.getElementById('relDataIni').value = todayISO();
+  document.getElementById('relDataFim').value = todayISO();
+  if(!started){ started=true; refreshAll(); }
+  else refreshAll();
+}
+
+async function salvarConfigOperador(){
+  const nome = document.getElementById('cfgNome').value.trim();
+  if(!nome){ toast('Nome não pode ficar vazio'); return; }
+  CONFIG.operadorNome = nome;
+  const pin = document.getElementById('cfgPin').value.trim();
+  if(pin) CONFIG.pinHash = await sha256(pin);
+  else if(document.getElementById('cfgPin').dataset.clear) CONFIG.pinHash='';
+  await saveConfig();
+  document.getElementById('operadorNome').textContent = CONFIG.operadorNome;
+  document.getElementById('cfgPin').value='';
+  toast('Configuração salva');
+}
+
+function updateNetStatus(){
+  const el = document.getElementById('netstatus');
+  const lbl = document.getElementById('netstatusLabel');
+  if(navigator.onLine){ el.className='online'; lbl.textContent='Online'; }
+  else { el.className='offline'; lbl.textContent='Offline — salvando local'; }
+}
+
+/* ---------------- Toast ---------------- */
+let toastT;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ---------------- Tabs ---------------- */
+function showTab(name){
+  document.querySelectorAll('.tabpanel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('#bottomnav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  refreshAll();
+}
+
+async function refreshAll(){
+  await Promise.all([renderDashboard(), renderEscalas(), renderOperacoes(), renderOcorrencias(), renderAgentes(), renderViaturas()]);
+}
+
+/* ---------------- Modal helper ---------------- */
+function openModal(html){
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('show');
+  document.getElementById('modalBody').innerHTML='';
+}
+document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeModal(); });
+
+/* ====================== AGENTES ====================== */
+async function renderAgentes(){
+  const list = await dbGetAll('agentes');
+  list.sort((a,b)=>a.nome.localeCompare(b.nome));
+  const el = document.getElementById('listaAgentes');
+  el.innerHTML = list.length? list.map(a=>`
+    <div class="item">
+      <div class="top">
+        <div><div class="title">${esc(a.nome)}</div><div class="meta">Matrícula: <b>${esc(a.matricula||'—')}</b></div></div>
+        <span class="tag ${a.disponivel?'disponivel':'indisponivel'}">${a.disponivel?'Disponível':'Indisponível'}</span>
+      </div>
+      <div class="actions">
+        <button onclick="toggleAgenteDisp('${a.id}')">${a.disponivel?'Marcar indisponível':'Marcar disponível'}</button>
+        <button onclick="openAgenteForm('${a.id}')">Editar</button>
+        <button class="danger" onclick="removerAgente('${a.id}')">Excluir</button>
+      </div>
+    </div>`).join('') : '<div class="empty">Nenhum agente cadastrado ainda.</div>';
+}
+async function openAgenteForm(id){
+  const a = id? await dbGet('agentes',id) : {id:uid(),nome:'',matricula:'',disponivel:true};
+  openModal(`
+    <div class="mhead"><h3>${id?'Editar agente':'Novo agente'}</h3><button class="mclose" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Nome completo</label><input type="text" id="fAgNome" value="${esc(a.nome)}"></div>
+    <div class="field"><label>Matrícula</label><input type="text" id="fAgMat" value="${esc(a.matricula)}"></div>
+    <div class="btn-row"><button class="btn primary" onclick='saveAgente(${JSON.stringify(a.id)})'>Salvar</button></div>
+  `);
+}
+async function saveAgente(id){
+  const nome = document.getElementById('fAgNome').value.trim();
+  if(!nome){ toast('Informe o nome'); return; }
+  const existing = await dbGet('agentes',id) || {id,disponivel:true,createdAt:new Date().toISOString()};
+  existing.nome = nome;
+  existing.matricula = document.getElementById('fAgMat').value.trim();
+  existing.updatedAt = new Date().toISOString();
+  existing.updatedBy = CONFIG.operadorNome;
+  await dbPut('agentes',existing);
+  closeModal(); renderAgentes(); toast('Agente salvo');
+}
+async function toggleAgenteDisp(id){ const a=await dbGet('agentes',id); a.disponivel=!a.disponivel; await dbPut('agentes',a); renderAgentes(); renderDashboard(); }
+async function removerAgente(id){ if(!confirm('Excluir este agente?'))return; await dbDelete('agentes',id); renderAgentes(); }
+
+/* ====================== VIATURAS ====================== */
+async function renderViaturas(){
+  const list = await dbGetAll('viaturas');
+  list.sort((a,b)=>a.prefixo.localeCompare(b.prefixo));
+  const el = document.getElementById('listaViaturas');
+  el.innerHTML = list.length? list.map(v=>`
+    <div class="item">
+      <div class="top">
+        <div><div class="title">${esc(v.prefixo)}</div><div class="meta">${esc(v.modelo||'')} · Placa: <b>${esc(v.placa||'—')}</b></div></div>
+        <span class="tag ${v.disponivel?'disponivel':'indisponivel'}">${v.disponivel?'Disponível':'Indisponível'}</span>
+      </div>
+      <div class="actions">
+        <button onclick="toggleViaturaDisp('${v.id}')">${v.disponivel?'Marcar indisponível':'Marcar disponível'}</button>
+        <button onclick="openViaturaForm('${v.id}')">Editar</button>
+        <button class="danger" onclick="removerViatura('${v.id}')">Excluir</button>
+      </div>
+    </div>`).join('') : '<div class="empty">Nenhuma viatura cadastrada ainda.</div>';
+}
+async function openViaturaForm(id){
+  const v = id? await dbGet('viaturas',id) : {id:uid(),prefixo:'',modelo:'',placa:'',disponivel:true};
+  openModal(`
+    <div class="mhead"><h3>${id?'Editar viatura':'Nova viatura'}</h3><button class="mclose" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Prefixo</label><input type="text" id="fVtPrefixo" value="${esc(v.prefixo)}" placeholder="Ex.: VTR-07"></div>
+    <div class="field"><label>Modelo</label><input type="text" id="fVtModelo" value="${esc(v.modelo)}"></div>
+    <div class="field"><label>Placa</label><input type="text" id="fVtPlaca" value="${esc(v.placa)}"></div>
+    <div class="btn-row"><button class="btn primary" onclick='saveViatura(${JSON.stringify(v.id)})'>Salvar</button></div>
+  `);
+}
+async function saveViatura(id){
+  const prefixo = document.getElementById('fVtPrefixo').value.trim();
+  if(!prefixo){ toast('Informe o prefixo'); return; }
+  const existing = await dbGet('viaturas',id) || {id,disponivel:true,createdAt:new Date().toISOString()};
+  existing.prefixo=prefixo;
+  existing.modelo=document.getElementById('fVtModelo').value.trim();
+  existing.placa=document.getElementById('fVtPlaca').value.trim().toUpperCase();
+  await dbPut('viaturas',existing);
+  closeModal(); renderViaturas(); toast('Viatura salva');
+}
+async function toggleViaturaDisp(id){ const v=await dbGet('viaturas',id); v.disponivel=!v.disponivel; await dbPut('viaturas',v); renderViaturas(); renderDashboard(); }
+async function removerViatura(id){ if(!confirm('Excluir esta viatura?'))return; await dbDelete('viaturas',id); renderViaturas(); }
+
+/* ====================== ESCALAS ====================== */
+async function renderEscalas(){
+  const data = document.getElementById('filtroEscalaData').value;
+  let list = await dbGetAll('escalas');
+  if(data) list = list.filter(e=>e.data===data);
+  list.sort((a,b)=> (a.turno||'').localeCompare(b.turno||''));
+  const viaturas = await dbGetAll('viaturas');
+  const agentes = await dbGetAll('agentes');
+  const el = document.getElementById('listaEscalas');
+  el.innerHTML = list.length? list.map(e=>{
+    const vt = viaturas.find(v=>v.id===e.viaturaId);
+    const nomes = (e.agenteIds||[]).map(id=>agentes.find(a=>a.id===id)?.nome).filter(Boolean);
+    return `<div class="item">
+      <div class="top">
+        <div><div class="title">${fmtDate(e.data)} · ${esc(e.turno)}</div>
+        <div class="meta">Viatura: <b>${esc(vt?vt.prefixo:'—')}</b><br>Equipe: <b>${esc(nomes.join(', ')||'—')}</b>${e.observacao?`<br>Obs.: ${esc(e.observacao)}`:''}</div></div>
+      </div>
+      <div class="actions">
+        <button onclick="openEscalaForm('${e.id}')">Editar</button>
+        <button class="danger" onclick="removerEscala('${e.id}')">Excluir</button>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty">Nenhuma escala para esta data.</div>';
+}
+async function openEscalaForm(id){
+  const e = id? await dbGet('escalas',id) : {id:uid(),data:document.getElementById('filtroEscalaData').value||todayISO(),turno:'Manhã',viaturaId:'',agenteIds:[],observacao:''};
+  const viaturas = await dbGetAll('viaturas');
+  const agentes = await dbGetAll('agentes');
+  openModal(`
+    <div class="mhead"><h3>${id?'Editar escala':'Nova escala'}</h3><button class="mclose" onclick="closeModal()">✕</button></div>
+    <div class="field-row">
+      <div class="field"><label>Data</label><input type="date" id="fEsData" value="${e.data}"></div>
+      <div class="field"><label>Turno</label>
+        <select id="fEsTurno">
+          ${['Manhã','Tarde','Noite','Integral'].map(t=>`<option ${e.turno===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Viatura</label>
+      <select id="fEsViatura"><option value="">— selecionar —</option>${viaturas.map(v=>`<option value="${v.id}" ${e.viaturaId===v.id?'selected':''}>${esc(v.prefixo)} ${v.modelo?('- '+esc(v.modelo)):''}</option>`).join('')}</select>
+    </div>
+    <div class="field"><label>Agentes da equipe</label>
+      <div class="check-grid">
+        ${agentes.length? agentes.map(a=>`<label class="check-item"><input type="checkbox" value="${a.id}" ${e.agenteIds?.includes(a.id)?'checked':''}> ${esc(a.nome)}</label>`).join('') : '<div class="meta">Cadastre agentes em "Cadastros" primeiro.</div>'}
+      </div>
+    </div>
+    <div class="field"><label>Observação</label><textarea id="fEsObs">${esc(e.observacao)}</textarea></div>
+    <div class="btn-row"><button class="btn primary" onclick='saveEscala(${JSON.stringify(e.id)})'>Salvar</button></div>
+  `);
+}
+async function saveEscala(id){
+  const existing = await dbGet('escalas',id) || {id,createdAt:new Date().toISOString()};
+  existing.data = document.getElementById('fEsData').value;
+  existing.turno = document.getElementById('fEsTurno').value;
+  existing.viaturaId = document.getElementById('fEsViatura').value;
+  existing.agenteIds = Array.from(document.querySelectorAll('.check-grid input:checked')).map(i=>i.value);
+  existing.observacao = document.getElementById('fEsObs').value.trim();
+  existing.updatedBy = CONFIG.operadorNome;
+  await dbPut('escalas',existing);
+  closeModal(); renderEscalas(); renderDashboard(); toast('Escala salva');
+}
+async function removerEscala(id){ if(!confirm('Excluir esta escala?'))return; await dbDelete('escalas',id); renderEscalas(); }
+
+/* ====================== GPS helper ====================== */
+function captureGPS(latId,lngId,statusId){
+  const st = document.getElementById(statusId);
+  st.textContent='Obtendo localização…'; st.className='gpsStatus';
+  if(!navigator.geolocation){ st.textContent='GPS não suportado neste navegador'; st.className='gpsStatus err'; return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    document.getElementById(latId).value = pos.coords.latitude.toFixed(6);
+    document.getElementById(lngId).value = pos.coords.longitude.toFixed(6);
+    st.textContent='Localização capturada ✓ (±'+Math.round(pos.coords.accuracy)+'m)'; st.className='gpsStatus ok';
+  }, err=>{
+    st.textContent='Não foi possível obter o GPS — preencha manualmente'; st.className='gpsStatus err';
+  }, {enableHighAccuracy:true, timeout:10000});
+}
+
+/* ====================== OPERAÇÕES ====================== */
+let filtroOpStatus='todas';
+function setFiltroOp(btn,v){ document.querySelectorAll('#filtroOperacaoStatus .chip').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); filtroOpStatus=v; renderOperacoes(); }
+
+async function renderOperacoes(){
+  let list = await dbGetAll('operacoes');
+  list.sort((a,b)=> (b.data+b.horaInicio).localeCompare(a.data+a.horaInicio));
+  if(filtroOpStatus!=='todas') list = list.filter(o=>o.status===filtroOpStatus);
+  const el = document.getElementById('listaOperacoes');
+  el.innerHTML = list.length? list.map(o=>renderOperacaoItem(o)).join('') : '<div class="empty">Nenhuma operação encontrada.</div>';
+
+  // painel: ativas
+  const ativas = (await dbGetAll('operacoes')).filter(o=>o.status==='aberta').sort((a,b)=>b.horaInicio.localeCompare(a.horaInicio));
+  document.getElementById('painelOperacoesAtivas').innerHTML = ativas.length? ativas.map(o=>renderOperacaoItem(o)).join('') : '<div class="empty">Nenhuma operação em andamento agora.</div>';
+}
+function renderOperacaoItem(o){
+  return `<div class="item">
+    <div class="top">
+      <div><div class="title">${esc(o.rodovia||'Rodovia não informada')} · km ${esc(o.km||'—')}</div>
+      <div class="meta">${esc(o.municipio||'')}<br>Início: <b>${fmtDate(o.data)} ${esc(o.horaInicio||'')}</b>${o.horaFim?` · Fim: <b>${esc(o.horaFim)}</b>`:''}${o.autuacoes?`<br>Autuações: <b>${o.autuacoes}</b>`:''}</div></div>
+      <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;">
+        <span class="tag ${o.tipo==='Especial'?'especial':(o.tipo==='Emergencial'?'urgente':'ordinaria')}">${esc(o.tipo)}</span>
+        <span class="tag ${o.status}">${o.status==='aberta'?'Em andamento':'Encerrada'}</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button onclick="verOperacao('${o.id}')">Detalhes</button>
+      ${o.status==='aberta'?`<button class="primary" onclick="openEncerrarOperacao('${o.id}')">Encerrar</button>`:''}
+      <button class="danger" onclick="removerOperacao('${o.id}')">Excluir</button>
+    </div>
+  </div>`;
+}
+async function openOperacaoForm(){
+  const escalasHoje = (await dbGetAll('escalas')).filter(e=>e.data===todayISO());
+  const viaturas = await dbGetAll('viaturas');
+  const id = uid();
+  openModal(`
+    <div class="mhead"><h3>Nova operação</h3><button class="mclose" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Tipo</label>
+      <select id="fOpTipo"><option>Ordinária</option><option>Especial</option><option>Emergencial</option></select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Data</label><input type="date" id="fOpData" value="${todayISO()}"></div>
+      <div class="field"><label>Hora de início</label><input type="time" id="fOpHoraIni" value="${nowTime()}"></div>
+    </div>
+    <div class="field"><label>Equipe de escala vinculada (opcional)</label>
+      <select id="fOpEscala"><option value="">— nenhuma / avulsa —</option>
+        ${escalasHoje.map(e=>`<option value="${e.id}">${e.turno} — ${viaturas.find(v=>v.id===e.viaturaId)?.prefixo||''}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Rodovia</label><input type="text" id="fOpRodovia" placeholder="Ex.: PE-060"></div>
+      <div class="field"><label>Km</label><input type="text" id="fOpKm" placeholder="Ex.: 12,3"></div>
+    </div>
+    <div class="field"><label>Município</label><input type="text" id="fOpMunicipio"></div>
+    <div class="gpsRow">
+      <div class="field"><label>Latitude</label><input type="text" id="fOpLat"></div>
+      <div class="field"><label>Longitude</label><input type="text" id="fOpLng"></div>
+      <button type="button" class="btnGps" onclick="captureGPS('fOpLat','fOpLng','fOpGpsSt')">📍 GPS</button>
+    </div>
+    <div class="gpsStatus" id="fOpGpsSt"></div>
+
+    <div class="section-title" style="margin-top:16px"><h2 style="font-size:12px">Checklist da viatura</h2></div>
+    <div class="field-row">
+      <div class="field"><label>Combustível (%)</label><input type="number" id="fOpComb" min="0" max="100" placeholder="Ex.: 75"></div>
+      <div class="field"><label>Avarias?</label>
+        <select id="fOpAvaria"><option value="nao">Não</option><option value="sim">Sim</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Descrição de avarias / observação do checklist</label><textarea id="fOpChecklistObs" placeholder="Equipamentos, avarias, pendências da viatura..."></textarea></div>
+
+    <div class="field"><label>Observações iniciais</label><textarea id="fOpObsIni"></textarea></div>
+    <div class="btn-row"><button class="btn primary" onclick='criarOperacao(${JSON.stringify(id)})'>Iniciar operação</button></div>
+  `);
+}
+async function criarOperacao(id){
+  const rodovia = document.getElementById('fOpRodovia').value.trim();
+  if(!rodovia){ toast('Informe a rodovia'); return; }
+  const op = {
+    id, tipo: document.getElementById('fOpTipo').value,
+    data: document.getElementById('fOpData').value,
+    horaInicio: document.getElementById('fOpHoraIni').value,
+    horaFim:'', status:'aberta',
+    escalaId: document.getElementById('fOpEscala').value,
+    rodovia, km: document.getElementById('fOpKm').value.trim(),
+    municipio: document.getElementById('fOpMunicipio').value.trim(),
+    lat: document.getElementById('fOpLat').value.trim(),
+    lng: document.getElementById('fOpLng').value.trim(),
+    checklist:{ combustivel: document.getElementById('fOpComb').value, avaria: document.getElementById('fOpAvaria').value, obs: document.getElementById('fOpChecklistObs').value.trim() },
+    observacoesIniciais: document.getElementById('fOpObsIni').value.trim(),
+    observacoesFinais:'', autuacoes:0, veiculosAbordados:0, veiculosRemovidos:0, documentosRecolhidos:0,
+    createdAt:new Date().toISOString(), createdBy:CONFIG.operadorNome
+  };
+  await dbPut('operacoes',op);
+  closeModal(); renderOperacoes(); renderDashboard(); toast('Operação iniciada');
+}
+async function openEncerrarOperacao(id){
+  const o = await dbGet('operacoes',id);
+  openModal(`
+    <div class="mhead"><h3>Encerrar operação</h3><button class="mclose" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Hora de encerramento</label><input type="time" id="fEncHora" value="${nowTime()}"></div>
+    <div class="field-row">
+      <div class="field"><label>Nº de AITs / autuações</label><input type="number" id="fEncAutuacoes" value="${o.autuacoes||0}" min="0"></div>
+      <div class="field"><label>Veículos abordados</label><input type="number" id="fEncAbordados" value="${o.veiculosAbordados||0}" min="0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Veículos removidos</label><input type="number" id="fEncRemovidos" value="${o.veiculosRemovidos||0}" min="0"></div>
+      <div class="field"><label>Documentos recolhidos</label><input type="number" id="fEncDocs" value="${o.documentosRecolhidos||0}" min="0"></div>
+    </div>
+    <div class="field"><label>Observações finais</label><textarea id="fEncObs">${esc(o.observacoesFinais)}</textarea></div>
+    <div class="btn-row"><button class="btn primary" onclick='confirmarEncerramento(${JSON.stringify(id)})'>Confirmar encerramento</button></div>
+  `);
+}
+async function confirmarEncerramento(id){
+  const o = await dbGet('operacoes',id);
+  o.status='encerrada';
+  o.horaFim = document.getElementById('fEncHora').value;
+  o.autuacoes = Number(document.getElementById('fEncAutuacoes').value)||0;
+  o.veiculosAbordados = Number(document.getElementById('fEncAbordados').value)||0;
+  o.veiculosRemovidos = Number(document.getElementById('fEncRemovidos').value)||0;
+  o.documentosRecolhidos = Number(document.getElementById('fEncDocs').value)||0;
+  o.observacoesFinais = document.getElementById('fEncObs').value.trim();
+  o.updatedAt = new Date().toISOString(); o.updatedBy = CONFIG.operadorNome;
+  await dbPut('operacoes',o);
+  closeModal(); renderOperacoes(); renderDashboard(); toast('Operação encerrada');
+}
+async function removerOperacao(id){ if(!confirm('Excluir esta operação? Esta ação não pode ser desfeita.'))return; await dbDelete('operacoes',id); renderOperacoes(); renderDashboard(); }
+
+async function verOperacao(id){
+  const o = await dbGet('operacoes',id);
+  const ocorrencias = (await dbGetAll('ocorrencias')).filter(oc=>oc.operacaoId===id);
+  openModal(`
+    <div class="mhead"><h3>${esc(o.rodovia)} · km ${esc(o.km||'—')}</h3><button class="mclose" onclick="closeModal()">✕</button></div>
+    <div class="detailBlock">
+      <div class="kv"><span>Tipo</span><span>${esc(o.tipo)}</span></div>
+      <div class="kv"><span>Status</span><span>${o.status==='aberta'?'Em andamento':'Encerrada'}</span></div>
+      <div class="kv"><span>Data</span><span>${fmtDate(o.data)}</span></div>
+      <div class="kv"><span>Início / Fim</span><span>${esc(o.horaInicio)} — ${esc(o.horaFim||'—')}</span></div>
+      <div class="kv"><span>Município</span><span>${esc(o.municipio||'—')}</span></div>
+      <div class="kv"><span>Coordenadas</span><span>${o.lat?`${o.lat}, ${o.lng}`:'—'}</span></div>
+      <div class="kv"><span>Autuações</span><span>${o.autuacoes||0}</span></div>
+      <div class="kv"><span>Veículos abordados / removidos</span><span>${o.veiculosAbordados||0} / ${o.veiculosRemovidos||0}</span></div>
+      <div class="kv"><span>Documentos recolhidos</span><span>${o.documentosRecolhidos||0}</span></div>
+      <div class="kv"><span>Combustível no início</span><span>${o.checklist?.combustivel?o.checklist.combustivel+'%':'—'}</span></div>
+      <div class="kv"><span>Avarias na viatura</span><span>${o.checklist?.avaria==='sim'?'Sim':'Não'}</span></div>
+      <div class="kv"><span>Registrado por</span><span>${esc(o.createdBy||'—')}</span></div>
+    </div>
+    ${o.observacoesIniciais?`<div class="detailBlock"><h4>Observações iniciais</h4>${esc(o.observacoesIniciais)}</div>`:''}
+    ${o.observacoesFinais?`<div class="detailBlock"><h4>Observações finais</h4>${esc(o.observacoesFinais)}</div>`:''}
+    ${ocorrencias.length?`<div class="detailBlock"><h4>Ocorrências vinculadas (${ocorrencias.length})</h4>${ocorrencias.map(oc=>`<div class="kv"><span>${esc(oc.tipo)}</span><span>${esc(oc.hora)}</span></div>`).join('')}</div>`:''}
+  `);
+}
+
+/* ====================== OCORRÊNCIAS ====================== */
+let filtroOcStatus='todas';
+function setFiltroOc(btn,v){ document.querySelectorAll('#filtroOcorrenciaStatus .chip').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); filtroOcStatus=v; renderOcorrencias(); }
+
+async function renderOcorrencias(){
+  let list = await dbGetAll('ocorrencias');
+  list.sort((a,b)=>(b.data+b.hora).localeCompare(a.data+a.hora));
+  if(filtroOcStatus!=='todas') list = list.filter(o=>o.status===filtroOcStatus);
+  document.getElementById('listaOcorrencias').innerHTML = list.length? list.map(o=>renderOcorrenciaItem(o)).join('') : '<div class="empty">Nenhuma ocorrência encontrada.</div>';
+
+  const abertas = (await dbGetAll('ocorrencias')).filter(o=>o.status==='aberta').sort((a,b)=>(b.data+b.hora).localeCompare(a.data+a.hora));
+  document.getElementById('painelOcorrenciasAbertas').innerHTML = abertas.length? abertas.map(o=>renderOcorrenciaItem(o)).join('') : '<div class="empty">Nenhuma ocorrência aberta.</div>';
+}
+function renderOcorrenciaItem(o){
+  return `<div class="item">
+    <div class="top">
+      <div><div class="title">${esc(o.tipo)}</div>
+      <div class="meta">${esc(o.rodovia||'')} ${o.km?('km '+esc(o.km)):''} · ${esc(o.municipio||'')}<br>${fmtDate(o.data)} ${esc(o.hora)} · ${o.fotos?.length||0} foto(s)</div></div>
+      <span class="tag ${o.status}">${o.status==='aberta'?'Aberta':'Encerrada'}</span>
+    </div>
+    <div class="actions">
+      <button onclick="verOcorrencia('${o.id}')">Detalhes</button>
+      ${o.status==='aberta'?`<button class="primary" onclick="encerrarOcorrencia('${o.id}')">Encerrar</button>`:''}
+      <button class="danger" onclick="removerOcorrencia('${o.id}')">Excluir</button>
+    </div>
+  </div>`;
+}
+async function openOcorrenciaForm(){
+  const operacoesAbertas = (await dbGetAll('operacoes')).filter(o=>o.status==='aberta');
+  const id = uid();
+  openModal(`
+    <div class="mhead"><h3>Nova ocorrência</h3><button class="mclose" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Vincular à operação (opcional)</label>
+      <select id="fOcOperacao"><option value="">— nenhuma —</option>${operacoesAbertas.map(o=>`<option value="${o.id}">${esc(o.rodovia)} · km ${esc(o.km||'—')}</option>`).join('')}</select>
+    </div>
+    <div class="field"><label>Tipo de ocorrência</label>
+      <select id="fOcTipo"><option>Sinistro de trânsito</option><option>Apoio a outro órgão</option><option>Infração constatada</option><option>Interdição / obra</option><option>Outro</option></select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Data</label><input type="date" id="fOcData" value="${todayISO()}"></div>
+      <div class="field"><label>Hora</label><input type="time" id="fOcHora" value="${nowTime()}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Rodovia</label><input type="text" id="fOcRodovia"></div>
+      <div class="field"><label>Km</label><input type="text" id="fOcKm"></div>
+    </div>
+    <div class="field"><label>Município</label><input type="text" id="fOcMunicipio"></div>
+    <div class="gpsRow">
+      <div class="field"><label>Latitude</label><input type="text" id="fOcLat"></div>
+      <div class="field"><label>Longitude</label><input type="text" id="fOcLng"></div>
+      <button type="button" class="btnGps" onclick="captureGPS('fOcLat','fOcLng','fOcGpsSt')">📍 GPS</button>
+    </div>
+    <div class="gpsStatus" id="fOcGpsSt"></div>
+    <div class="field"><label>Descrição</label><textarea id="fOcDesc"></textarea></div>
+    <div class="field">
+      <label>Fotos</label>
+      <div class="photoGrid" id="fOcFotos">
+        <label class="addPhotoBtn">＋<input type="file" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event)"></label>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn primary" onclick='salvarOcorrencia(${JSON.stringify(id)})'>Registrar ocorrência</button></div>
+  `);
+  window._fotosTemp = [];
+}
+function compressImage(file){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e=>{ img.onload=()=>{
+      const maxW = 1024;
+      const scale = Math.min(1, maxW/img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width*scale; canvas.height = img.height*scale;
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      resolve(canvas.toDataURL('image/jpeg',0.6));
+    }; img.src = e.target.result; };
+    reader.readAsDataURL(file);
+  });
+}
+async function addFotos(ev){
+  const files = Array.from(ev.target.files);
+  for(const f of files){
+    const dataUrl = await compressImage(f);
+    window._fotosTemp.push(dataUrl);
+  }
+  renderFotoPreview();
+  ev.target.value='';
+}
+function renderFotoPreview(){
+  const wrap = document.getElementById('fOcFotos');
+  wrap.innerHTML = window._fotosTemp.map((f,i)=>`<div class="photoThumb"><img src="${f}"><div class="rm" onclick="removeFotoTemp(${i})">✕</div></div>`).join('')
+    + `<label class="addPhotoBtn">＋<input type="file" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event)"></label>`;
+}
+function removeFotoTemp(i){ window._fotosTemp.splice(i,1); renderFotoPreview(); }
+
+async function salvarOcorrencia(id){
+  const tipo = document.getElementById('fOcTipo').value;
+  const oc = {
+    id, tipo, status:'aberta',
+    operacaoId: document.getElementById('fOcOperacao').value,
+    data: document.getElementById('fOcData').value,
+    hora: document.getElementById('fOcHora').value,
+    rodovia: document.getElementById('fOcRodovia').value.trim(),
+    km: document.getElementById('fOcKm').value.trim(),
+    municipio: document.getElementById('fOcMunicipio').value.trim(),
+    lat: document.getElementById('fOcLat').value.trim(),
+    lng: document.getElementById('fOcLng').value.trim(),
+    descricao: document.getElementById('fOcDesc').value.trim(),
+    fotos: window._fotosTemp || [],
+    createdAt:new Date().toISOString(), createdBy:CONFIG.operadorNome
+  };
+  await dbPut('ocorrencias',oc);
+  closeModal(); renderOcorrencias(); renderDashboard(); toast('Ocorrência registrada');
+}
+async function verOcorrencia(id){
+  const o = await dbGet('ocorrencias',id);
+  openModal(`
+    <div class="mhead"><h3>${esc(o.tipo)}</h3><button class="mclose" onclick="closeModal()">✕</button></div>
+    <div class="detailBlock">
+      <div class="kv"><span>Status</span><span>${o.status==='aberta'?'Aberta':'Encerrada'}</span></div>
+      <div class="kv"><span>Data / hora</span><span>${fmtDate(o.data)} ${esc(o.hora)}</span></div>
+      <div class="kv"><span>Local</span><span>${esc(o.rodovia||'—')} ${o.km?('km '+esc(o.km)):''} — ${esc(o.municipio||'—')}</span></div>
+      <div class="kv"><span>Coordenadas</span><span>${o.lat?`${o.lat}, ${o.lng}`:'—'}</span></div>
+      <div class="kv"><span>Registrado por</span><span>${esc(o.createdBy||'—')}</span></div>
+    </div>
+    ${o.descricao?`<div class="detailBlock"><h4>Descrição</h4>${esc(o.descricao)}</div>`:''}
+    ${o.fotos?.length?`<div class="detailBlock"><h4>Fotos (${o.fotos.length})</h4><div class="photoGrid">${o.fotos.map(f=>`<div class="photoThumb"><img src="${f}"></div>`).join('')}</div></div>`:''}
+  `);
+}
+async function encerrarOcorrencia(id){ const o=await dbGet('ocorrencias',id); o.status='encerrada'; o.updatedAt=new Date().toISOString(); o.updatedBy=CONFIG.operadorNome; await dbPut('ocorrencias',o); renderOcorrencias(); renderDashboard(); toast('Ocorrência encerrada'); }
+async function removerOcorrencia(id){ if(!confirm('Excluir esta ocorrência?'))return; await dbDelete('ocorrencias',id); renderOcorrencias(); renderDashboard(); }
+
+/* ====================== PAINEL / DASHBOARD ====================== */
+async function renderDashboard(){
+  document.getElementById('painelData').textContent = fmtDate(todayISO());
+  const [operacoes, ocorrencias, escalas, viaturas, agentes] = await Promise.all([
+    dbGetAll('operacoes'), dbGetAll('ocorrencias'), dbGetAll('escalas'), dbGetAll('viaturas'), dbGetAll('agentes')
+  ]);
+  const hoje = todayISO();
+  const opAtivas = operacoes.filter(o=>o.status==='aberta');
+  const opHoje = operacoes.filter(o=>o.data===hoje);
+  const escalasHoje = escalas.filter(e=>e.data===hoje);
+  const viaturasDisp = viaturas.filter(v=>v.disponivel).length;
+  const viaturasIndisp = viaturas.filter(v=>!v.disponivel).length;
+  const ocAbertas = ocorrencias.filter(o=>o.status==='aberta');
+  const autuacoesHoje = opHoje.reduce((s,o)=>s+(Number(o.autuacoes)||0),0);
+  const rodoviasAtivas = new Set(opAtivas.map(o=>o.rodovia).filter(Boolean));
+  // pendência: operação aberta há mais de 12h
+  const agora = Date.now();
+  const pendentes = opAtivas.filter(o=>{
+    const inicio = new Date(o.data+'T'+(o.horaInicio||'00:00')).getTime();
+    return (agora-inicio) > 12*3600*1000;
+  });
+
+  const cards = [
+    {n:opAtivas.length, l:'Operações em andamento', alert:opAtivas.length>0},
+    {n:escalasHoje.length, l:'Equipes escaladas hoje'},
+    {n:viaturasDisp, l:'Viaturas disponíveis'},
+    {n:viaturasIndisp, l:'Viaturas indisponíveis', alert:viaturasIndisp>0},
+    {n:ocAbertas.length, l:'Ocorrências abertas', alert:ocAbertas.length>0},
+    {n:autuacoesHoje, l:'Autuações hoje'},
+    {n:rodoviasAtivas.size, l:'Rodovias com operação ativa'},
+    {n:pendentes.length, l:'Pendências (>12h em aberto)', alert:pendentes.length>0},
+  ];
+  document.getElementById('dashCards').innerHTML = cards.map(c=>`
+    <div class="card ${c.alert?'alert':''}"><div class="num">${c.n}</div><div class="lbl">${c.l}</div></div>
+  `).join('');
+}
+
+/* ====================== RELATÓRIOS: PDF e CSV ====================== */
+function filtrarPorPeriodo(list){
+  const ini = document.getElementById('relDataIni').value;
+  const fim = document.getElementById('relDataFim').value;
+  return list.filter(x=> (!ini || x.data>=ini) && (!fim || x.data<=fim));
+}
+
+async function coletarDadosRelatorio(){
+  const tipo = document.getElementById('relTipo').value;
+  if(tipo==='operacoes') return {tipo, dados: filtrarPorPeriodo(await dbGetAll('operacoes'))};
+  if(tipo==='ocorrencias') return {tipo, dados: filtrarPorPeriodo(await dbGetAll('ocorrencias'))};
+  return {tipo, dados: filtrarPorPeriodo(await dbGetAll('escalas'))};
+}
+
+async function gerarPDF(){
+  const {tipo, dados} = await coletarDadosRelatorio();
+  if(!dados.length){ toast('Nenhum dado no período selecionado'); return; }
+  const ini = document.getElementById('relDataIni').value, fim = document.getElementById('relDataFim').value;
+  let rows='';
+  if(tipo==='operacoes'){
+    rows = `<table><tr><th>Data</th><th>Tipo</th><th>Rodovia/Km</th><th>Município</th><th>Início-Fim</th><th>Status</th><th>Autuações</th><th>Veíc. abordados</th><th>Veíc. removidos</th></tr>`+
+      dados.map(o=>`<tr><td>${fmtDate(o.data)}</td><td>${esc(o.tipo)}</td><td>${esc(o.rodovia)} ${esc(o.km||'')}</td><td>${esc(o.municipio||'')}</td><td>${esc(o.horaInicio)}-${esc(o.horaFim||'—')}</td><td>${o.status}</td><td>${o.autuacoes||0}</td><td>${o.veiculosAbordados||0}</td><td>${o.veiculosRemovidos||0}</td></tr>`).join('')+`</table>`;
+  } else if(tipo==='ocorrencias'){
+    rows = `<table><tr><th>Data</th><th>Hora</th><th>Tipo</th><th>Rodovia/Km</th><th>Município</th><th>Status</th><th>Fotos</th></tr>`+
+      dados.map(o=>`<tr><td>${fmtDate(o.data)}</td><td>${esc(o.hora)}</td><td>${esc(o.tipo)}</td><td>${esc(o.rodovia)} ${esc(o.km||'')}</td><td>${esc(o.municipio||'')}</td><td>${o.status}</td><td>${o.fotos?.length||0}</td></tr>`).join('')+`</table>`;
+  } else {
+    const viaturas = await dbGetAll('viaturas'), agentes = await dbGetAll('agentes');
+    rows = `<table><tr><th>Data</th><th>Turno</th><th>Viatura</th><th>Equipe</th><th>Observação</th></tr>`+
+      dados.map(e=>`<tr><td>${fmtDate(e.data)}</td><td>${esc(e.turno)}</td><td>${esc(viaturas.find(v=>v.id===e.viaturaId)?.prefixo||'—')}</td><td>${esc((e.agenteIds||[]).map(id=>agentes.find(a=>a.id===id)?.nome).filter(Boolean).join(', '))}</td><td>${esc(e.observacao||'')}</td></tr>`).join('')+`</table>`;
+  }
+  document.getElementById('printArea').innerHTML = `
+    <h1>COT Operacional — DER-PE / UFVS</h1>
+    <h3>Relatório de ${tipo} · Período: ${fmtDate(ini)} a ${fmtDate(fim)}</h3>
+    <p>Gerado por ${esc(CONFIG.operadorNome)} em ${new Date().toLocaleString('pt-BR')}</p>
+    ${rows}
+  `;
+  window.print();
+}
+
+function csvEscape(v){ const s=(v??'').toString().replace(/"/g,'""'); return `"${s}"`; }
+async function gerarCSV(){
+  const {tipo, dados} = await coletarDadosRelatorio();
+  if(!dados.length){ toast('Nenhum dado no período selecionado'); return; }
+  let header=[], rows=[];
+  if(tipo==='operacoes'){
+    header=['Data','Tipo','Rodovia','Km','Municipio','HoraInicio','HoraFim','Status','Autuacoes','VeiculosAbordados','VeiculosRemovidos','DocumentosRecolhidos','Latitude','Longitude'];
+    rows = dados.map(o=>[o.data,o.tipo,o.rodovia,o.km,o.municipio,o.horaInicio,o.horaFim,o.status,o.autuacoes,o.veiculosAbordados,o.veiculosRemovidos,o.documentosRecolhidos,o.lat,o.lng]);
+  } else if(tipo==='ocorrencias'){
+    header=['Data','Hora','Tipo','Rodovia','Km','Municipio','Status','QtdFotos','Latitude','Longitude','Descricao'];
+    rows = dados.map(o=>[o.data,o.hora,o.tipo,o.rodovia,o.km,o.municipio,o.status,o.fotos?.length||0,o.lat,o.lng,o.descricao]);
+  } else {
+    const viaturas = await dbGetAll('viaturas'), agentes = await dbGetAll('agentes');
+    header=['Data','Turno','Viatura','Equipe','Observacao'];
+    rows = dados.map(e=>[e.data,e.turno,viaturas.find(v=>v.id===e.viaturaId)?.prefixo||'',(e.agenteIds||[]).map(id=>agentes.find(a=>a.id===id)?.nome).filter(Boolean).join('; '),e.observacao]);
+  }
+  const csv = [header.join(','), ...rows.map(r=>r.map(csvEscape).join(','))].join('\r\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  downloadBlob(blob, `cot_${tipo}_${todayISO()}.csv`);
+  toast('CSV exportado');
+}
+function downloadBlob(blob,name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },500);
+}
+
+/* ====================== BACKUP / IMPORTAÇÃO ====================== */
+async function exportarBackup(){
+  const stores=['agentes','viaturas','escalas','operacoes','ocorrencias'];
+  const data={};
+  for(const s of stores) data[s]=await dbGetAll(s);
+  data._config = CONFIG;
+  data._exportedAt = new Date().toISOString();
+  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+  downloadBlob(blob, `cot_backup_${todayISO()}.json`);
+  toast('Backup exportado');
+}
+async function importarBackup(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const stores=['agentes','viaturas','escalas','operacoes','ocorrencias'];
+    for(const s of stores){ for(const rec of (data[s]||[])) await dbPut(s,rec); }
+    toast('Backup importado com sucesso');
+    refreshAll();
+  }catch(e){ toast('Arquivo de backup inválido'); }
+  ev.target.value='';
+}
+</script>
+</body>
+</html>
